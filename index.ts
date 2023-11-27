@@ -1,3 +1,6 @@
+import * as fs from 'fs';
+import {Parser} from 'json2csv';
+
 const address = process.env.BTC_ADDRESS || '1FeexV6bAHb8ybZjqQMjJrcCrHGW9sb6uF';
 
 const fetchApi = async (
@@ -15,8 +18,24 @@ const fetchApi = async (
 (async() => {
     console.log('Starting script');
 
-    const res = await fetchApi(`https://blockchain.info/rawaddr/${address}`);
-    console.log('res', res);
+    const jsonData = await fetchApi(`https://blockchain.info/rawaddr/${address}`);
+    delete jsonData.txs;
+    const parser = new Parser({header: true});
+
+    try {
+        const csv = parser.parse(jsonData);
+        const filename = `${address}.csv`;
+
+        await new Promise<void>((resolve, reject) => {
+            fs.writeFile(filename, csv, err => {
+                if(err) reject(err);
+                resolve();
+            });
+        });
+    }
+    catch(ex) {
+        console.debug(ex);
+    }
 
     console.log('Done');
 })();
